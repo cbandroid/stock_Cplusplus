@@ -38,7 +38,7 @@ DrawChart::DrawChart(QWidget *parent)
     //    colPrice->resize(72,15);
     colPrice->setStyleSheet("color:yellow;font:bold;font-size:18px");
     colPrice->setAlignment(Qt::AlignCenter);
-    rowTime->resize(95,15);
+    rowTime->resize(95+65,15);
     rowTime->setStyleSheet("color:yellow;font:bold;font-size:18px");
     rowTime->setAlignment(Qt::AlignCenter);
     hKLine->setAttribute(Qt::WA_TransparentForMouseEvents, true);
@@ -153,15 +153,23 @@ void DrawChart::drawTimeShareChart(QPainter *painter)
     for (int i=1;i<lineNums+1;++i)
         painter->drawLine(QPointF(WIDTHEDGE, interval*i/(lineNums+1)*aveHeight+TOPHEIGHTEDGE),
             QPointF(timeShareChartWidth-WIDTHEDGE, interval*i/(lineNums+1)*aveHeight+TOPHEIGHTEDGE));
-    // qDebug()<<GlobalVar::mTimeShareChartList.size();
-    if (GlobalVar::mTimeShareChartList.isEmpty())
+
+
+    QRect rect;
+    rect=QRect(KWIDTHEDGE,5,240,30);
+    painter->setPen(Qt::yellow);
+    painter->setFont(QFont("微软雅黑",10,60));
+    painter->drawText(rect,Qt::AlignLeft, GlobalVar::curCode+" "+GlobalVar::curName);
+
+   if (GlobalVar::mTimeShareChartList.isEmpty())
         return;
     //绘制时间
-    QRect rect;
+   int count =GlobalVar::mTimeShareChartList.count();
+    QList<timeShareChartInfo>::const_iterator ptr =GlobalVar::mTimeShareChartList.begin();
     painter->setPen(Qt::white);
     for (int i=0;i<trendsTotal;i=i+d)
     {
-        if (i>=GlobalVar::mTimeShareChartList.count())
+        if (i>=count) // fixed 2024.10.8
             break;
 
         int offset=WIDTHEDGE;
@@ -171,7 +179,7 @@ void DrawChart::drawTimeShareChart(QPainter *painter)
         if (offset+aveWidth*(i-1)>timeShareChartWidth-d/3-1)
             offset-=15;
         rect=QRect(offset+aveWidth*(i-1),timeShareChartHeight-BOTTOMHEIGHTEDGE,36,20);
-        painter->drawText(rect,Qt::AlignLeft,GlobalVar::mTimeShareChartList.at(i).time.right(5));
+        painter->drawText(rect,Qt::AlignLeft,(ptr+i)->time.right(5));
     }
     int v=high*aveHeight+TOPHEIGHTEDGE;
     if (v>=20)
@@ -209,14 +217,15 @@ void DrawChart::drawTimeShareChart(QPainter *painter)
         painter->setPen(QColor(0, 255, 0));
         painter->drawLine(QPointF(WIDTHEDGE, (high+5)*aveHeight+TOPHEIGHTEDGE), QPointF(timeShareChartWidth-WIDTHEDGE, (high+5)*aveHeight+TOPHEIGHTEDGE));
     }
-    for (int i=0;i<GlobalVar::mTimeShareChartList.count();++i)
+    float price1,price2,avePrice1,avePrice2;
+    for (int i=0;i< count;++i)
     {
         if (i>=1)
         {
-            float price1=GlobalVar::mTimeShareChartList.at(i-1).price;
-            float price2=GlobalVar::mTimeShareChartList.at(i).price;
-            float avePrice1=GlobalVar::mTimeShareChartList.at(i-1).avePrice;
-            float avePrice2=GlobalVar::mTimeShareChartList.at(i).avePrice;
+            price1=(ptr+i-1)->price;
+            price2=(ptr+i)->price;
+            avePrice1=(ptr+i-1)->avePrice;
+            avePrice2=(ptr+i)->avePrice;
             painter->setPen(Qt::white);
             if (high!=low)
                 painter->drawLine(QPointF(WIDTHEDGE+aveWidth*(i-1), (high-price1)*aveHeight+TOPHEIGHTEDGE), QPointF(WIDTHEDGE+aveWidth*i, (high-price2)*aveHeight+TOPHEIGHTEDGE));
@@ -235,11 +244,11 @@ void DrawChart::drawTimeShareChart(QPainter *painter)
                 painter->drawLine(QPointF(WIDTHEDGE+aveWidth*(i-1), (high-avePrice1)*aveHeight+TOPHEIGHTEDGE), QPointF(WIDTHEDGE+aveWidth*i, (high-avePrice2)*aveHeight+TOPHEIGHTEDGE));
         }
 
-        float vol=GlobalVar::mTimeShareChartList.at(i).vol;
+        float vol=(ptr+i)->vol;
 //        qDebug()<<vol;
-        if (GlobalVar::mTimeShareChartList.at(i).direct==1)
+        if ((ptr+i)->direct==1)
             painter->setPen(QColor(0, 255, 0));
-        else if (GlobalVar::mTimeShareChartList.at(i).direct==2)
+        else if ((ptr+i)->direct==2)
             painter->setPen(Qt::red);
         else
             painter->setPen(Qt::white);
@@ -290,6 +299,7 @@ void DrawChart::drawHisTimeShare(QPainter *painter)
         painter->drawLine(QPointF(i*d*aveWidth/2+WIDTHEDGE+2,0),QPointF(i*d*aveWidth/2+WIDTHEDGE+2,timeShareChartHeight-BOTTOMHEIGHTEDGE));
     QRect rect;
     painter->setPen(Qt::white);
+    QList<timeShareChartInfo>::const_iterator ptr =GlobalVar::mHisTimeShareChartList.begin();
     for (int i=1;i<trendsTotal;i=i+d)
     {
         int offset=WIDTHEDGE;
@@ -299,7 +309,7 @@ void DrawChart::drawHisTimeShare(QPainter *painter)
         if (i+d>trendsTotal)
             offset-=15;
         rect=QRect(offset+aveWidth*(i-1),timeShareChartHeight-BOTTOMHEIGHTEDGE,36,20);
-        painter->drawText(rect,Qt::AlignLeft,GlobalVar::mHisTimeShareChartList.at(i).time.right(5));
+        painter->drawText(rect,Qt::AlignLeft,(ptr+i)->time.right(5));
     }
     int v=(high-GlobalVar::hisPreClose)*aveHeight+TOPHEIGHTEDGE;
     if (v>=20)
@@ -334,16 +344,18 @@ void DrawChart::drawHisTimeShare(QPainter *painter)
         painter->setPen(QColor(0, 255, 0));
         painter->drawLine(QPointF(WIDTHEDGE, (high-c)*aveHeight+TOPHEIGHTEDGE), QPointF(timeShareChartWidth-WIDTHEDGE, (high-c)*aveHeight+TOPHEIGHTEDGE));
     }
+
+    float price1,price2,avePrice1,avePrice2;
     for (int i=0;i<trendsTotal;++i)
     {
-        float vol=GlobalVar::mHisTimeShareChartList.at(i).vol;
+        float vol=(ptr+i)->vol;
         if (i>=1)
         {
-            float price1=GlobalVar::mHisTimeShareChartList.at(i-1).price;
-            float price2=GlobalVar::mHisTimeShareChartList.at(i).price;
+            price1=(ptr+i-1)->price;
+            price2=(ptr+i)->price;
 
-            float avePrice1=GlobalVar::mHisTimeShareChartList.at(i-1).avePrice;
-            float avePrice2=GlobalVar::mHisTimeShareChartList.at(i).avePrice;
+            avePrice1=(ptr+i-1)->avePrice;
+            avePrice2=(ptr+i)->avePrice;
             painter->setPen(Qt::white);
             if (high!=low)
                 painter->drawLine(QPointF(WIDTHEDGE+aveWidth*(i-1), (high-price1)*aveHeight+TOPHEIGHTEDGE), QPointF(WIDTHEDGE+aveWidth*i, (high-price2)*aveHeight+TOPHEIGHTEDGE));
@@ -371,9 +383,9 @@ void DrawChart::drawHisTimeShare(QPainter *painter)
 
         }
         else {
-            if (GlobalVar::mHisTimeShareChartList.at(1).price>GlobalVar::hisPreClose)
+            if ((ptr+1)->price>GlobalVar::hisPreClose)
                 painter->setPen(Qt::red);
-            else if (GlobalVar::mHisTimeShareChartList.at(1).price<GlobalVar::hisPreClose)
+            else if ((ptr+1)->price<GlobalVar::hisPreClose)
                 painter->setPen(QColor(0, 255, 0));
             else
                 painter->setPen(Qt::white);
@@ -400,6 +412,9 @@ void DrawChart::drawCandleChart(QPainter *painter)
     int priceH=canldeChartHeight*12/15;
     painter->drawRect(0,0,candleChartWidth,canldeChartHeight);
     painter->drawLine(0,priceH,candleChartWidth-KRIGHTWIDTHEDGE,priceH);
+    painter->setPen(Qt::yellow);
+    painter->setFont(QFont("微软雅黑",12,300));
+    painter->drawText(rect,Qt::AlignLeft, GlobalVar::curCode+" "+GlobalVar::curName );
 
     if (GlobalVar::mCandleChartList.isEmpty())
         return;
@@ -420,7 +435,7 @@ void DrawChart::drawCandleChart(QPainter *painter)
 //        qDebug()<<aveWidth;
     float w=aveWidth/4;
     float aveHeight=0;
-    QRect rect;
+  //  QRect rect;
     if (highPoint!=lowPoint)
         aveHeight=(priceH-2*KTOPHEIGHTEDGE)/(highPoint-lowPoint);
     painter->setPen(QColor(79,79,79));
@@ -453,15 +468,26 @@ void DrawChart::drawCandleChart(QPainter *painter)
     }
     float curXPos=KWIDTHEDGE+aveWidth/2;
     float preXPos=KWIDTHEDGE-aveWidth/2;
-    for (int n=begin;n<end;++n)
+    float open,close,high,low,vol,Y,height;
+   // qDebug() <<"drawchart " << begin <<"," << end <<"," <<GlobalVar::mCandleChartList.size();
+
+    QList<candleChartInfo>::const_iterator ptr = GlobalVar::mCandleChartList.begin();
+    static bool changecolor=false;
+    for (int nIdx=begin;nIdx<end;++nIdx)
     {
-        float open=GlobalVar::mCandleChartList.at(n).open;
-        float close=GlobalVar::mCandleChartList.at(n).close;
-        float high=GlobalVar::mCandleChartList.at(n).high;
-        float low=GlobalVar::mCandleChartList.at(n).low;
-        float vol=GlobalVar::mCandleChartList.at(n).vol;
-        float Y=(highPoint-close)*aveHeight;
-        float height=(close-open)*aveHeight;
+        open= (ptr+nIdx)->open;
+        if (nIdx==total-1)
+        {
+            close =GlobalVar::baseInfoData[0];
+        }
+        else
+          close=(ptr+nIdx)->close;
+
+        high=(ptr+nIdx)->high;
+        low=(ptr+nIdx)->low;
+        vol=(ptr+nIdx)->vol;
+        Y=(highPoint-close)*aveHeight;
+        height=(close-open)*aveHeight;
         painter->setPen(Qt::white);
         painter->setBrush(Qt::white);
         if (open>close)
@@ -476,44 +502,61 @@ void DrawChart::drawCandleChart(QPainter *painter)
         painter->drawLine(QPointF(curXPos,(highPoint-high)*aveHeight+KTOPHEIGHTEDGE),
                 QPointF(curXPos,(highPoint-low)*aveHeight+KTOPHEIGHTEDGE));
         painter->drawRect(curXPos-w,Y+KTOPHEIGHTEDGE,2*w,height);
+
+        if (nIdx==total-1)
+        {
+           QPen pen= painter->pen();
+           QColor color = pen.color();
+           if ( changecolor){
+                changecolor=false;
+                painter->setPen(Qt::yellow); // 设置画笔颜色
+           }
+           else{
+               painter->setPen(Qt::red); // 设置画笔颜色
+               changecolor=true;
+           }
+           rect=QRect(curXPos,(highPoint-close)*aveHeight+KTOPHEIGHTEDGE+5,8, 8); // 圆的位置和大小
+           painter->drawEllipse(rect);
+           painter->setPen(color) ;
+        }
 //        qDebug()<<aveHeightVol<<candleHighLowPoint[2];
         painter->drawRect(curXPos-w,canldeChartHeight-vol*aveHeightVol-KBOTTOMHEIGHTEDGE,
                          2*w,vol*aveHeightVol);
-        if (n>0)
+        if (nIdx>0)
         {
-            float preMA=GlobalVar::mCandleChartList.at(n-1).MA5;
-            float MA=GlobalVar::mCandleChartList.at(n).MA5;
+            float preMA=(ptr+nIdx-1)->MA5;
+            float MA=(ptr+nIdx)->MA5;
             painter->setPen(QColor(255, 255, 255));
             if (preMA>0)
                 painter->drawLine(QPointF(preXPos,(highPoint-preMA)*aveHeight+KTOPHEIGHTEDGE),
                                  QPointF(curXPos,(highPoint-MA)*aveHeight+KTOPHEIGHTEDGE));
-            preMA=GlobalVar::mCandleChartList.at(n-1).MA10;
-            MA=GlobalVar::mCandleChartList.at(n).MA10;
+            preMA=(ptr+nIdx-1)->MA10;
+            MA=(ptr+nIdx)->MA10;
             painter->setPen(QColor(255, 255, 0));
             if (preMA>0)
                 painter->drawLine(QPointF(preXPos,(highPoint-preMA)*aveHeight+KTOPHEIGHTEDGE),
                                  QPointF(curXPos,(highPoint-MA)*aveHeight+KTOPHEIGHTEDGE));
-            preMA=GlobalVar::mCandleChartList.at(n-1).MA20;
-            MA=GlobalVar::mCandleChartList.at(n).MA20;
+            preMA=(ptr+nIdx-1)->MA20;
+            MA=(ptr+nIdx)->MA20;
             painter->setPen(QColor(0, 255, 0));
             if (preMA>0)
                 painter->drawLine(QPointF(preXPos,(highPoint-preMA)*aveHeight+KTOPHEIGHTEDGE),
                                  QPointF(curXPos,(highPoint-MA)*aveHeight+KTOPHEIGHTEDGE));
-            preMA=GlobalVar::mCandleChartList.at(n-1).MA60;
-            MA=GlobalVar::mCandleChartList.at(n).MA60;
+            preMA=(ptr+nIdx-1)->MA60;
+            MA=(ptr+nIdx)->MA60;
             painter->setPen(QColor(205,0,0));
             if (preMA>0)
                 painter->drawLine(QPointF(preXPos,(highPoint-preMA)*aveHeight+KTOPHEIGHTEDGE),
                                  QPointF(curXPos,(highPoint-MA)*aveHeight+KTOPHEIGHTEDGE));
 
-            preMA=GlobalVar::mCandleChartList.at(n-1).VMA5;
-            MA=GlobalVar::mCandleChartList.at(n).VMA5;
+            preMA=(ptr+nIdx-1)->VMA5;
+            MA=(ptr+nIdx)->VMA5;
             painter->setPen(QColor(255, 255, 0));
             if (preMA>0)
                 painter->drawLine(QPointF(preXPos,canldeChartHeight-preMA*aveHeightVol-KBOTTOMHEIGHTEDGE),
                                  QPointF(curXPos,canldeChartHeight-MA*aveHeightVol-KBOTTOMHEIGHTEDGE));
-            preMA=GlobalVar::mCandleChartList.at(n-1).VMA10;
-            MA=GlobalVar::mCandleChartList.at(n).VMA10;
+            preMA=(ptr+nIdx-1)->VMA10;
+            MA=(ptr+nIdx)->VMA10;
             painter->setPen(QColor(0, 255, 0));
             if (preMA>0)
                 painter->drawLine(QPointF(preXPos,canldeChartHeight-preMA*aveHeightVol-KBOTTOMHEIGHTEDGE),
@@ -566,21 +609,22 @@ void DrawChart::calcHighLowPoint(int begin,int end)
     candleHighLowPoint[1]={1000000.0};
     candleHighLowPoint[2]={0.0};
     float temp;
+    QList<candleChartInfo>::const_iterator ptr = GlobalVar::mCandleChartList.begin();
     for (int i=begin;i<end;++i)
     {
-        temp=GlobalVar::mCandleChartList.at(i).high;
+        temp=( ptr+i)->high;
         if (temp>candleHighLowPoint[0])
         {
             candleHighLowPoint[0]=temp;
             candleHighLowPoint[3]=i-begin;
         }
-        temp=GlobalVar::mCandleChartList.at(i).low;
+        temp=( ptr+i)->low;
         if (temp<candleHighLowPoint[1])
         {
             candleHighLowPoint[1]=temp;
             candleHighLowPoint[4]=i-begin;
         }
-        temp=GlobalVar::mCandleChartList.at(i).vol;
+        temp=( ptr+i)->vol;
         if (temp>candleHighLowPoint[2])
             candleHighLowPoint[2]=temp;
     }
@@ -592,19 +636,20 @@ void DrawChart::calcTSHighLowPoint(int begin, int end)
     hisTimeShareHighLowPoint[1]={1000000.0};
     hisTimeShareHighLowPoint[2]={0.0};
     float temp;
+    QList<timeShareChartInfo>::const_iterator ptr  =GlobalVar::mHisTimeShareChartList.begin();
     for (int i=begin;i<end;++i)
     {
-        temp=GlobalVar::mHisTimeShareChartList.at(i).price;
+        temp= (ptr+i)->price;
         if (temp>hisTimeShareHighLowPoint[0])
         {
             hisTimeShareHighLowPoint[0]=temp;
         }
-        temp=GlobalVar::mHisTimeShareChartList.at(i).price;
+        temp= (ptr+i)->avePrice;
         if (temp<hisTimeShareHighLowPoint[1])
         {
             hisTimeShareHighLowPoint[1]=temp;
         }
-        temp=GlobalVar::mHisTimeShareChartList.at(i).vol;
+        temp= (ptr+i)->vol;
         if (temp>hisTimeShareHighLowPoint[2])
             hisTimeShareHighLowPoint[2]=temp;
     }
@@ -622,12 +667,17 @@ void DrawChart::appendAnnNews(int end)
     int n=GlobalVar::KRange-1;
     if (GlobalVar::mCandleChartList.count()-1<n)
         n=GlobalVar::mCandleChartList.count()-1;
+    if (n<0){
+        return;
+    }
     int b=end-1-KRANGE;
-    if (b<0)
+    if (b<0){
         b=0;
+    }
+	int count =GlobalVar::annoucementList.count();
     for (int j=end-1;j>=b;--j)
-    {
-        for (int i=pos;i<GlobalVar::annoucementList.count();++i)
+    {    
+        for (int i=pos;i<count;++i)
         {
             QString c=GlobalVar::annoucementList.at(i)[0];
             QString l=GlobalVar::annoucementList.at(i)[1];
