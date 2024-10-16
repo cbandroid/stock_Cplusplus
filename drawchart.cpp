@@ -1,5 +1,5 @@
 #include "drawchart.h"
-
+//画圆
 DrawChart::DrawChart(QWidget *parent)
     : QWidget{parent}
 {
