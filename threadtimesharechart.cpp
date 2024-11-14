@@ -72,16 +72,19 @@ void ThreadTimeShareChart::getSSEData()
 
 void ThreadTimeShareChart::getAllTimeShareChart(bool r)
 {
-    if (GlobalVar::curCode.length()!=5 and GlobalVar::curCode.left(1)!="1" and GlobalVar::curCode.left(3)!="399")
+    QString s=GlobalVar::curCode.left(3);
+    QList<QString> list;
+    list<<"100"<<"122"<<"133"<<"103"<<"104";
+    if (not list.contains(s))
     {
-        GlobalVar::getData(allData,2,QUrl("https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&ut=fa5fd1943c7b386f172d6893dbfba10b&iscr=0&ndays=1&secid="+GlobalVar::getComCode()+"&_=1666401553893"));
+        GlobalVar::getData(allData,2.5,QUrl("https://push2his.eastmoney.com/api/qt/stock/trends2/get?fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&ut=fa5fd1943c7b386f172d6893dbfba10b&iscr=0&ndays=1&secid="+GlobalVar::getComCode()+"&_=1666401553893"));
         if (GlobalVar::timeOutFlag[6])
             GlobalVar::timeOutFlag[6]=false;
         else
         {
             initTimeShareChartList();
             emit getTimeShareChartFinished();
-            if (preGCode.length()==5 or preGCode.left(1)=="1" or preGCode.left(3)=="399")
+            if (list.contains(preGCode.left(3)))
                 reply->abort();
         }
     }
@@ -104,16 +107,31 @@ void ThreadTimeShareChart::initTimeShareChartList()
     if (jsonError.error == QJsonParseError::NoError)
     {
         QJsonObject jsonObject = doc.object();
+        QString code=jsonObject.value("data").toObject().value("code").toString();
+        QString str=GlobalVar::curCode;
+        if (GlobalVar::curCode.contains("."))
+            str=GlobalVar::curCode.split(".")[1];
+        if (code!=str)
+            return;
         GlobalVar::preClose=jsonObject.value("data").toObject().value("preClose").toDouble();
         int ph=110;
         int pl=90;
-        if (GlobalVar::curCode.left(1)=="3" or GlobalVar::curCode.left(1)=="8" or GlobalVar::curCode.left(3)=="688")
+        float a=int(GlobalVar::preClose*ph+0.5)/100.0;
+        float b=int(GlobalVar::preClose*pl+0.5)/100.0;
+        if (GlobalVar::curCode.left(1)=="3" or GlobalVar::curCode.left(3)=="688")
         {
             ph=120;
             pl=80;
+            a=int(GlobalVar::preClose*ph+0.5)/100.0;
+            b=int(GlobalVar::preClose*pl+0.5)/100.0;
         }
-        float a=int(GlobalVar::preClose*ph+0.5)/100.0;
-        float b=int(GlobalVar::preClose*pl+0.5)/100.0;
+        else if(GlobalVar::curCode.left(1)=="4" or GlobalVar::curCode.left(1)=="8")
+        {
+            ph=130;
+            pl=70;
+            a=int(GlobalVar::preClose*ph)/100.0;
+            b=int(GlobalVar::preClose*pl)/100.0;
+        }
         GlobalVar::timeShareHighLowPoint[3]=per(a);
         GlobalVar::timeShareHighLowPoint[4]=per(b);
         QJsonArray data=jsonObject.value("data").toObject().value("trends").toArray();
@@ -127,36 +145,36 @@ void ThreadTimeShareChart::initTimeShareChartList()
         QStringList list;
         float h;
         float l;
-        // if (GlobalVar::curCode.left(2)=="1." or GlobalVar::curCode.left(3)=="399")
-        //     for (int i = 0; i < data.size(); ++i)
-        //     {
-        //         list=data.at(i).toString().split(",");
-        //         info.time=list[0];
-        //         info.price=per(list[2].toFloat());
-        //         info.vol=list[5].toFloat();
-        //         info.avePrice=per(list[7].toFloat());
-        //         if (pp<info.price)
-        //             info.direct=2;
-        //         else if (pp>info.price)
-        //             info.direct=1;
-        //         else
-        //             info.direct=3;
-        //         pp=info.price;
-        //         h=per(list[3].toFloat());
-        //         l=per(list[4].toFloat());
-        //         if (h>GlobalVar::timeShareHighLowPoint[0])
-        //             GlobalVar::timeShareHighLowPoint[0]=h;
-        //         if (l<GlobalVar::timeShareHighLowPoint[1])
-        //             GlobalVar::timeShareHighLowPoint[1]=l;
-        //         if (info.avePrice>GlobalVar::timeShareHighLowPoint[0])
-        //             GlobalVar::timeShareHighLowPoint[0]=info.avePrice;
-        //         if (info.avePrice<GlobalVar::timeShareHighLowPoint[1])
-        //             GlobalVar::timeShareHighLowPoint[1]=info.avePrice;
-        //         if (info.vol>GlobalVar::timeShareHighLowPoint[2])
-        //             GlobalVar::timeShareHighLowPoint[2]=info.vol;
-        //         mTimeShareChartList.append(info);
-        //     }
-        // else
+        if (GlobalVar::curCode.left(2)=="1." or GlobalVar::curCode.left(3)=="399" or GlobalVar::curCode.left(3)=="899")
+            for (int i = 0; i < data.size(); ++i)
+            {
+                list=data.at(i).toString().split(",");
+                info.time=list[0];
+                info.price=per(list[2].toFloat());
+                info.vol=list[5].toFloat();
+                info.avePrice=per(list[7].toFloat());
+                if (pp<info.price)
+                    info.direct=2;
+                else if (pp>info.price)
+                    info.direct=1;
+                else
+                    info.direct=3;
+                pp=info.price;
+                h=per(list[3].toFloat());
+                l=per(list[4].toFloat());
+                if (h>GlobalVar::timeShareHighLowPoint[0])
+                    GlobalVar::timeShareHighLowPoint[0]=h;
+                if (l<GlobalVar::timeShareHighLowPoint[1])
+                    GlobalVar::timeShareHighLowPoint[1]=l;
+                if (info.avePrice>GlobalVar::timeShareHighLowPoint[0])
+                    GlobalVar::timeShareHighLowPoint[0]=info.avePrice;
+                if (info.avePrice<GlobalVar::timeShareHighLowPoint[1])
+                    GlobalVar::timeShareHighLowPoint[1]=info.avePrice;
+                if (info.vol>GlobalVar::timeShareHighLowPoint[2])
+                    GlobalVar::timeShareHighLowPoint[2]=info.vol;
+                mTimeShareChartList.append(info);
+            }
+        else
             for (int i = 0; i < data.size(); ++i)
             {
                 list=data.at(i).toString().split(",");
@@ -209,19 +227,30 @@ void ThreadTimeShareChart::initSSETimeShareChartList()
                 GlobalVar::preClose=jsonObject.value("data").toObject().value("preClose").toDouble();
             int ph=110;
             int pl=90;
-            if (GlobalVar::curCode.left(1)=="3" or GlobalVar::curCode.left(1)=="8" or GlobalVar::curCode.left(3)=="688")
+            float a=int(GlobalVar::preClose*ph+0.5)/100.0;
+            float b=int(GlobalVar::preClose*pl+0.5)/100.0;
+            if (GlobalVar::curCode.left(1)=="3" or GlobalVar::curCode.left(3)=="688")
             {
                 ph=120;
                 pl=80;
+                a=int(GlobalVar::preClose*ph+0.5)/100.0;
+                b=int(GlobalVar::preClose*pl+0.5)/100.0;
             }
-            GlobalVar::timeShareHighLowPoint[3]=per(int(GlobalVar::preClose*ph+0.5)/100.0);
-            GlobalVar::timeShareHighLowPoint[4]=per(int(GlobalVar::preClose*pl+0.5)/100.0);
+            else if(GlobalVar::curCode.left(1)=="4" or GlobalVar::curCode.left(1)=="8")
+            {
+                ph=130;
+                pl=70;
+                a=int(GlobalVar::preClose*ph)/100.0;
+                b=int(GlobalVar::preClose*pl)/100.0;
+            }
+            GlobalVar::timeShareHighLowPoint[3]=per(a);
+            GlobalVar::timeShareHighLowPoint[4]=per(b);
             GlobalVar::timeShareHighLowPoint[2]=0;
             pp=0;
             int t=jsonObject.value("data").toObject().value("trendsTotal").toInt();
             if (t!=0)
                 GlobalVar::trendsTotal=jsonObject.value("data").toObject().value("trendsTotal").toInt();
-            if (GlobalVar::curCode.left(2)=="1." or GlobalVar::curCode.left(3)=="399")
+            if (GlobalVar::curCode.left(2)=="1." or GlobalVar::curCode.left(3)=="399" or GlobalVar::curCode.left(3)=="899")
             {
                 for (int i = 0; i < data.size(); ++i)
                 {

@@ -5,7 +5,7 @@ ThreadNewsReport::ThreadNewsReport(QObject *parent)
     : QObject{parent}
 {
     tts->setLocale(QLocale::Chinese);
-    tts->setRate(0.1);
+    tts->setRate(0.3);
     tts->setPitch(0.0);
     tts->setVolume(1);
     QDateTime c=QDateTime::currentDateTime();
@@ -21,12 +21,12 @@ void ThreadNewsReport::getNewsData()
     if (tts->state() == QTextToSpeech::Speaking)
         return;
     newsContent="";
-    GlobalVar::getData(allData,2,QUrl("https://finance.eastmoney.com/yaowen.html"));
+    GlobalVar::getData(allData,3,QUrl("https://finance.eastmoney.com/yaowen.html"));
     if (GlobalVar::timeOutFlag[4])
         GlobalVar::timeOutFlag[4]=false;
     else
         initEastNews();
-    GlobalVar::getData(allData,2,QUrl("https://www.jin10.com/flash_newest.js?t=1667528593473"));
+    GlobalVar::getData(allData,3,QUrl("https://www.jin10.com/flash_newest.js?t=1667528593473"));
 
     if (GlobalVar::timeOutFlag[3])
         GlobalVar::timeOutFlag[3]=false;
